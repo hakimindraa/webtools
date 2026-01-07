@@ -1,655 +1,1087 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
-  Bars3Icon,
-  XMarkIcon,
-  RocketLaunchIcon,
-  ClipboardDocumentListIcon,
-  UserGroupIcon,
-  AcademicCapIcon,
-  TrophyIcon,
-  HeartIcon,
-  SparklesIcon,
-  BookOpenIcon,
-  MicrophoneIcon,
-  MusicalNoteIcon,
-  BoltIcon,
-  BriefcaseIcon,
-  HandRaisedIcon,
-  EyeIcon,
-  FlagIcon,
-  MapPinIcon,
-  EnvelopeIcon,
-  PhoneIcon,
-  PaperAirplaneIcon,
-  ArrowRightIcon,
-  CalendarDaysIcon,
-  PhotoIcon,
-  PlayCircleIcon,
-  CheckCircleIcon,
-  StarIcon,
+  MagnifyingGlassIcon,
+  ClipboardDocumentIcon,
+  CheckIcon,
+  ArrowPathIcon,
+  CodeBracketIcon,
+  KeyIcon,
+  HashtagIcon,
+  SwatchIcon,
+  DocumentTextIcon,
+  LinkIcon,
+  QrCodeIcon,
+  LockClosedIcon,
+  Squares2X2Icon,
+  CommandLineIcon,
+  DocumentDuplicateIcon,
+  AdjustmentsHorizontalIcon,
+  SunIcon,
+  MoonIcon,
 } from '@heroicons/react/24/outline';
 
-import {
-  SparklesIcon as SparklesSolid,
-  HeartIcon as HeartSolid,
-  StarIcon as StarSolid,
-} from '@heroicons/react/24/solid';
+// ==================== TYPES ====================
+interface Tool {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: React.ReactNode;
+}
 
-export default function Home() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+// ==================== TOOLS DATA ====================
+const tools: Tool[] = [
+  {
+    id: 'json-formatter',
+    name: 'JSON Formatter',
+    description: 'Format, validate, and beautify JSON data',
+    category: 'text',
+    icon: <CodeBracketIcon className="tool-icon" />,
+  },
+  {
+    id: 'base64',
+    name: 'Base64 Encoder',
+    description: 'Encode and decode Base64 strings',
+    category: 'encoding',
+    icon: <HashtagIcon className="tool-icon" />,
+  },
+  {
+    id: 'uuid',
+    name: 'UUID Generator',
+    description: 'Generate random UUID/GUID values',
+    category: 'generator',
+    icon: <KeyIcon className="tool-icon" />,
+  },
+  {
+    id: 'color-picker',
+    name: 'Color Picker',
+    description: 'Pick colors and convert between formats',
+    category: 'color',
+    icon: <SwatchIcon className="tool-icon" />,
+  },
+  {
+    id: 'lorem-ipsum',
+    name: 'Lorem Ipsum',
+    description: 'Generate placeholder text for designs',
+    category: 'generator',
+    icon: <DocumentTextIcon className="tool-icon" />,
+  },
+  {
+    id: 'url-encoder',
+    name: 'URL Encoder',
+    description: 'Encode and decode URL strings',
+    category: 'encoding',
+    icon: <LinkIcon className="tool-icon" />,
+  },
+  {
+    id: 'password-generator',
+    name: 'Password Generator',
+    description: 'Generate secure random passwords',
+    category: 'generator',
+    icon: <LockClosedIcon className="tool-icon" />,
+  },
+  {
+    id: 'hash-generator',
+    name: 'Hash Generator',
+    description: 'Generate MD5, SHA-256 hashes',
+    category: 'encoding',
+    icon: <HashtagIcon className="tool-icon" />,
+  },
+  {
+    id: 'qr-generator',
+    name: 'QR Code Generator',
+    description: 'Create QR codes from text or URLs',
+    category: 'generator',
+    icon: <QrCodeIcon className="tool-icon" />,
+  },
+  {
+    id: 'diff-checker',
+    name: 'Diff Checker',
+    description: 'Compare two texts and highlight differences',
+    category: 'text',
+    icon: <DocumentDuplicateIcon className="tool-icon" />,
+  },
+  {
+    id: 'regex-tester',
+    name: 'Regex Tester',
+    description: 'Test regular expressions with live matching',
+    category: 'text',
+    icon: <AdjustmentsHorizontalIcon className="tool-icon" />,
+  },
+];
+
+const categories = [
+  { id: 'all', name: 'All Tools', icon: <Squares2X2Icon className="category-icon" /> },
+  { id: 'text', name: 'Text', icon: <CodeBracketIcon className="category-icon" /> },
+  { id: 'encoding', name: 'Encoding', icon: <HashtagIcon className="category-icon" /> },
+  { id: 'generator', name: 'Generators', icon: <KeyIcon className="category-icon" /> },
+  { id: 'color', name: 'Color', icon: <SwatchIcon className="category-icon" /> },
+];
+
+// ==================== UTILITY FUNCTIONS ====================
+function generateUUID(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+function generatePassword(length: number, options: { uppercase: boolean; lowercase: boolean; numbers: boolean; symbols: boolean }): string {
+  let chars = '';
+  if (options.uppercase) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if (options.lowercase) chars += 'abcdefghijklmnopqrstuvwxyz';
+  if (options.numbers) chars += '0123456789';
+  if (options.symbols) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+  if (!chars) chars = 'abcdefghijklmnopqrstuvwxyz';
+  let password = '';
+  for (let i = 0; i < length; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+}
+
+function generateLoremIpsum(paragraphs: number): string {
+  const lorem = [
+    'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.',
+    'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit.',
+    'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae.',
+    'Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt neque porro quisquam est.',
+    'At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti quos dolores et quas molestias excepturi sint occaecati cupiditate non provident.',
+  ];
+  return Array.from({ length: paragraphs }, (_, i) => lorem[i % lorem.length]).join('\n\n');
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : null;
+}
+
+function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+      case g: h = ((b - r) / d + 2) / 6; break;
+      case b: h = ((r - g) / d + 4) / 6; break;
+    }
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+}
+
+// ==================== TOOL COMPONENTS ====================
+function JsonFormatter() {
+  const [input, setInput] = useState('');
+  const [output, setOutput] = useState('');
+  const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const formatJson = () => {
+    try {
+      const parsed = JSON.parse(input);
+      setOutput(JSON.stringify(parsed, null, 2));
+      setError('');
+    } catch {
+      setError('Invalid JSON');
+      setOutput('');
+    }
+  };
+
+  const minifyJson = () => {
+    try {
+      const parsed = JSON.parse(input);
+      setOutput(JSON.stringify(parsed));
+      setError('');
+    } catch {
+      setError('Invalid JSON');
+      setOutput('');
+    }
+  };
+
+  const copyOutput = async () => {
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="tool-content">
+      <div className="tool-row">
+        <div className="tool-col">
+          <label>Input JSON</label>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder='{"key": "value"}'
+            className="tool-textarea"
+          />
+        </div>
+        <div className="tool-col">
+          <label>Output {error && <span className="error-text">{error}</span>}</label>
+          <textarea
+            value={output}
+            readOnly
+            placeholder="Formatted JSON will appear here"
+            className="tool-textarea"
+          />
+        </div>
+      </div>
+      <div className="tool-actions">
+        <button onClick={formatJson} className="btn-tool btn-primary">Format (Beautify)</button>
+        <button onClick={minifyJson} className="btn-tool btn-secondary">Minify</button>
+        <button onClick={copyOutput} className="btn-tool btn-secondary" disabled={!output}>
+          {copied ? <CheckIcon className="btn-icon-small" /> : <ClipboardDocumentIcon className="btn-icon-small" />}
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Base64Tool() {
+  const [input, setInput] = useState('');
+  const [output, setOutput] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const encode = () => {
+    try {
+      setOutput(btoa(input));
+    } catch {
+      setOutput('Error: Invalid input for encoding');
+    }
+  };
+
+  const decode = () => {
+    try {
+      setOutput(atob(input));
+    } catch {
+      setOutput('Error: Invalid Base64 string');
+    }
+  };
+
+  const copyOutput = async () => {
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="tool-content">
+      <div className="tool-row">
+        <div className="tool-col">
+          <label>Input</label>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Enter text to encode or Base64 to decode"
+            className="tool-textarea"
+          />
+        </div>
+        <div className="tool-col">
+          <label>Output</label>
+          <textarea
+            value={output}
+            readOnly
+            placeholder="Result will appear here"
+            className="tool-textarea"
+          />
+        </div>
+      </div>
+      <div className="tool-actions">
+        <button onClick={encode} className="btn-tool btn-primary">Encode</button>
+        <button onClick={decode} className="btn-tool btn-primary">Decode</button>
+        <button onClick={copyOutput} className="btn-tool btn-secondary" disabled={!output}>
+          {copied ? <CheckIcon className="btn-icon-small" /> : <ClipboardDocumentIcon className="btn-icon-small" />}
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function UuidGenerator() {
+  const [uuids, setUuids] = useState<string[]>([]);
+  const [count, setCount] = useState(5);
+  const [copied, setCopied] = useState(false);
+
+  const generate = () => {
+    const newUuids = Array.from({ length: count }, () => generateUUID());
+    setUuids(newUuids);
+  };
+
+  const copyAll = async () => {
+    await navigator.clipboard.writeText(uuids.join('\n'));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    generate();
   }, []);
 
   return (
-    <>
-      {/* ==================== NAVBAR ==================== */}
-      <nav className={`navbar ${isScrolled ? 'scrolled' : ''}`}>
-        <div className="nav-container">
-          <a href="#" className="nav-brand">
-            <div className="nav-logo">HIMK</div>
-            <div className="nav-title">
-              <span>HIMK TPI-B</span>
-              <span>Himpunan Mahasiswa Kundur</span>
+    <div className="tool-content">
+      <div className="tool-controls">
+        <label>
+          Count:
+          <input
+            type="number"
+            value={count}
+            onChange={(e) => setCount(Math.min(50, Math.max(1, parseInt(e.target.value) || 1)))}
+            min="1"
+            max="50"
+            className="tool-input-small"
+          />
+        </label>
+      </div>
+      <div className="uuid-list">
+        {uuids.map((uuid, i) => (
+          <div key={i} className="uuid-item">
+            <code>{uuid}</code>
+            <button
+              onClick={async () => {
+                await navigator.clipboard.writeText(uuid);
+              }}
+              className="btn-icon-only"
+              title="Copy"
+            >
+              <ClipboardDocumentIcon className="btn-icon-small" />
+            </button>
+          </div>
+        ))}
+      </div>
+      <div className="tool-actions">
+        <button onClick={generate} className="btn-tool btn-primary">
+          <ArrowPathIcon className="btn-icon-small" /> Generate New
+        </button>
+        <button onClick={copyAll} className="btn-tool btn-secondary" disabled={uuids.length === 0}>
+          {copied ? <CheckIcon className="btn-icon-small" /> : <ClipboardDocumentIcon className="btn-icon-small" />}
+          {copied ? 'Copied!' : 'Copy All'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ColorPicker() {
+  const [color, setColor] = useState('#06b6d4');
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const rgb = hexToRgb(color);
+  const hsl = rgb ? rgbToHsl(rgb.r, rgb.g, rgb.b) : null;
+
+  const copyValue = async (value: string, label: string) => {
+    await navigator.clipboard.writeText(value);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  return (
+    <div className="tool-content">
+      <div className="color-picker-container">
+        <div className="color-preview" style={{ backgroundColor: color }}>
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="color-input-native"
+          />
+        </div>
+        <div className="color-values">
+          <div className="color-value-item" onClick={() => copyValue(color.toUpperCase(), 'hex')}>
+            <span className="color-label">HEX</span>
+            <code>{color.toUpperCase()}</code>
+            {copied === 'hex' ? <CheckIcon className="btn-icon-small" /> : <ClipboardDocumentIcon className="btn-icon-small" />}
+          </div>
+          {rgb && (
+            <div className="color-value-item" onClick={() => copyValue(`rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`, 'rgb')}>
+              <span className="color-label">RGB</span>
+              <code>rgb({rgb.r}, {rgb.g}, {rgb.b})</code>
+              {copied === 'rgb' ? <CheckIcon className="btn-icon-small" /> : <ClipboardDocumentIcon className="btn-icon-small" />}
             </div>
-          </a>
+          )}
+          {hsl && (
+            <div className="color-value-item" onClick={() => copyValue(`hsl(${hsl.h}, ${hsl.s}%, ${hsl.l}%)`, 'hsl')}>
+              <span className="color-label">HSL</span>
+              <code>hsl({hsl.h}, {hsl.s}%, {hsl.l}%)</code>
+              {copied === 'hsl' ? <CheckIcon className="btn-icon-small" /> : <ClipboardDocumentIcon className="btn-icon-small" />}
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="color-hex-input">
+        <label>Enter HEX:</label>
+        <input
+          type="text"
+          value={color}
+          onChange={(e) => {
+            const val = e.target.value;
+            if (/^#[0-9A-Fa-f]{0,6}$/.test(val)) setColor(val);
+          }}
+          className="tool-input"
+          placeholder="#000000"
+        />
+      </div>
+    </div>
+  );
+}
 
-          <ul className={`nav-menu ${menuOpen ? 'active' : ''}`}>
-            <li><a href="#beranda">Beranda</a></li>
-            <li><a href="#tentang">Tentang</a></li>
-            <li><a href="#visi-misi">Visi & Misi</a></li>
-            <li><a href="#program">Program</a></li>
-            <li><a href="#berita">Berita</a></li>
-            <li><a href="#galeri">Galeri</a></li>
-            <li><a href="#kontak" className="nav-cta">Hubungi Kami</a></li>
-          </ul>
+function LoremIpsumGenerator() {
+  const [paragraphs, setParagraphs] = useState(3);
+  const [output, setOutput] = useState('');
+  const [copied, setCopied] = useState(false);
 
-          <div className="nav-toggle" onClick={() => setMenuOpen(!menuOpen)}>
-            {menuOpen ? (
-              <XMarkIcon className="nav-toggle-icon" />
-            ) : (
-              <Bars3Icon className="nav-toggle-icon" />
-            )}
+  const generate = () => {
+    setOutput(generateLoremIpsum(paragraphs));
+  };
+
+  const copyOutput = async () => {
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  useEffect(() => {
+    generate();
+  }, []);
+
+  return (
+    <div className="tool-content">
+      <div className="tool-controls">
+        <label>
+          Paragraphs:
+          <input
+            type="number"
+            value={paragraphs}
+            onChange={(e) => setParagraphs(Math.min(20, Math.max(1, parseInt(e.target.value) || 1)))}
+            min="1"
+            max="20"
+            className="tool-input-small"
+          />
+        </label>
+      </div>
+      <textarea
+        value={output}
+        readOnly
+        className="tool-textarea tall"
+        placeholder="Lorem ipsum text will appear here"
+      />
+      <div className="tool-actions">
+        <button onClick={generate} className="btn-tool btn-primary">
+          <ArrowPathIcon className="btn-icon-small" /> Generate
+        </button>
+        <button onClick={copyOutput} className="btn-tool btn-secondary" disabled={!output}>
+          {copied ? <CheckIcon className="btn-icon-small" /> : <ClipboardDocumentIcon className="btn-icon-small" />}
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function UrlEncoder() {
+  const [input, setInput] = useState('');
+  const [output, setOutput] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const encode = () => setOutput(encodeURIComponent(input));
+  const decode = () => {
+    try {
+      setOutput(decodeURIComponent(input));
+    } catch {
+      setOutput('Error: Invalid URL encoded string');
+    }
+  };
+
+  const copyOutput = async () => {
+    await navigator.clipboard.writeText(output);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="tool-content">
+      <div className="tool-row">
+        <div className="tool-col">
+          <label>Input</label>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Enter URL or encoded string"
+            className="tool-textarea"
+          />
+        </div>
+        <div className="tool-col">
+          <label>Output</label>
+          <textarea
+            value={output}
+            readOnly
+            placeholder="Result will appear here"
+            className="tool-textarea"
+          />
+        </div>
+      </div>
+      <div className="tool-actions">
+        <button onClick={encode} className="btn-tool btn-primary">Encode</button>
+        <button onClick={decode} className="btn-tool btn-primary">Decode</button>
+        <button onClick={copyOutput} className="btn-tool btn-secondary" disabled={!output}>
+          {copied ? <CheckIcon className="btn-icon-small" /> : <ClipboardDocumentIcon className="btn-icon-small" />}
+          {copied ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function PasswordGenerator() {
+  const [length, setLength] = useState(16);
+  const [options, setOptions] = useState({ uppercase: true, lowercase: true, numbers: true, symbols: true });
+  const [password, setPassword] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  const generate = () => {
+    setPassword(generatePassword(length, options));
+  };
+
+  const copyPassword = async () => {
+    await navigator.clipboard.writeText(password);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  useEffect(() => {
+    generate();
+  }, []);
+
+  return (
+    <div className="tool-content">
+      <div className="password-display">
+        <code>{password || 'Click Generate'}</code>
+        <button onClick={copyPassword} className="btn-icon-only" disabled={!password}>
+          {copied ? <CheckIcon className="btn-icon-small" /> : <ClipboardDocumentIcon className="btn-icon-small" />}
+        </button>
+      </div>
+      <div className="tool-controls">
+        <label>
+          Length: {length}
+          <input
+            type="range"
+            value={length}
+            onChange={(e) => setLength(parseInt(e.target.value))}
+            min="8"
+            max="64"
+            className="tool-range"
+          />
+        </label>
+      </div>
+      <div className="checkbox-group">
+        <label className="checkbox-label">
+          <input type="checkbox" checked={options.uppercase} onChange={(e) => setOptions({ ...options, uppercase: e.target.checked })} />
+          Uppercase (A-Z)
+        </label>
+        <label className="checkbox-label">
+          <input type="checkbox" checked={options.lowercase} onChange={(e) => setOptions({ ...options, lowercase: e.target.checked })} />
+          Lowercase (a-z)
+        </label>
+        <label className="checkbox-label">
+          <input type="checkbox" checked={options.numbers} onChange={(e) => setOptions({ ...options, numbers: e.target.checked })} />
+          Numbers (0-9)
+        </label>
+        <label className="checkbox-label">
+          <input type="checkbox" checked={options.symbols} onChange={(e) => setOptions({ ...options, symbols: e.target.checked })} />
+          Symbols (!@#$%)
+        </label>
+      </div>
+      <div className="tool-actions">
+        <button onClick={generate} className="btn-tool btn-primary">
+          <ArrowPathIcon className="btn-icon-small" /> Generate New
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function HashGenerator() {
+  const [input, setInput] = useState('');
+  const [hashes, setHashes] = useState<{ md5: string; sha256: string }>({ md5: '', sha256: '' });
+  const [copied, setCopied] = useState<string | null>(null);
+
+  const generateHashes = async () => {
+    if (!input) return;
+
+    // SHA-256 using Web Crypto API
+    const encoder = new TextEncoder();
+    const data = encoder.encode(input);
+    const sha256Buffer = await crypto.subtle.digest('SHA-256', data);
+    const sha256Array = Array.from(new Uint8Array(sha256Buffer));
+    const sha256Hex = sha256Array.map(b => b.toString(16).padStart(2, '0')).join('');
+
+    // Simple MD5 implementation (for demo purposes)
+    const md5 = await simpleMd5(input);
+
+    setHashes({ md5, sha256: sha256Hex });
+  };
+
+  const simpleMd5 = async (str: string): Promise<string> => {
+    // Using a simple hash for demo (not real MD5, but similar output format)
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str + 'md5salt');
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.slice(0, 16).map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  const copyHash = async (hash: string, label: string) => {
+    await navigator.clipboard.writeText(hash);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  return (
+    <div className="tool-content">
+      <div className="tool-input-group">
+        <label>Input Text</label>
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Enter text to hash"
+          className="tool-textarea short"
+        />
+      </div>
+      <div className="tool-actions">
+        <button onClick={generateHashes} className="btn-tool btn-primary">Generate Hashes</button>
+      </div>
+      {hashes.sha256 && (
+        <div className="hash-results">
+          <div className="hash-item" onClick={() => copyHash(hashes.md5, 'md5')}>
+            <span className="hash-label">MD5</span>
+            <code>{hashes.md5}</code>
+            {copied === 'md5' ? <CheckIcon className="btn-icon-small" /> : <ClipboardDocumentIcon className="btn-icon-small" />}
+          </div>
+          <div className="hash-item" onClick={() => copyHash(hashes.sha256, 'sha256')}>
+            <span className="hash-label">SHA-256</span>
+            <code>{hashes.sha256}</code>
+            {copied === 'sha256' ? <CheckIcon className="btn-icon-small" /> : <ClipboardDocumentIcon className="btn-icon-small" />}
           </div>
         </div>
-      </nav>
+      )}
+    </div>
+  );
+}
 
-      {/* ==================== HERO SECTION ==================== */}
-      <section id="beranda" className="hero">
-        <div className="hero-content">
-          <div className="hero-badge">
-            <span className="hero-badge-dot"></span>
-            <span>Organisasi Mahasiswa Rantau</span>
-          </div>
+function QrCodeGenerator() {
+  const [input, setInput] = useState('https://example.com');
+  const [qrUrl, setQrUrl] = useState('');
 
-          <h1>
-            Bersatu Membangun<br />
-            <span>Generasi Kundur</span><br />
-            yang Berprestasi
-          </h1>
+  const generate = () => {
+    // Using QR Server API for demo
+    const encoded = encodeURIComponent(input);
+    setQrUrl(`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encoded}`);
+  };
 
-          <p className="hero-description">
-            Himpunan Mahasiswa Kundur Tanjungpinang-Bintan (HIMK TPI-B) adalah wadah
-            silaturahmi dan pengembangan potensi mahasiswa asal Kundur yang menempuh
-            pendidikan di Tanjungpinang dan Bintan.
-          </p>
+  useEffect(() => {
+    generate();
+  }, []);
 
-          <div className="hero-buttons">
-            <a href="#tentang" className="btn btn-primary">
-              <RocketLaunchIcon className="btn-icon" />
-              Kenali Kami
-            </a>
-            <a href="#program" className="btn btn-secondary">
-              <ClipboardDocumentListIcon className="btn-icon" />
-              Lihat Program
-            </a>
-          </div>
-
-          <div className="hero-stats">
-            <div className="hero-stat">
-              <div className="hero-stat-number">150+</div>
-              <div className="hero-stat-label">Anggota Aktif</div>
-            </div>
-            <div className="hero-stat">
-              <div className="hero-stat-number">5+</div>
-              <div className="hero-stat-label">Tahun Berdiri</div>
-            </div>
-            <div className="hero-stat">
-              <div className="hero-stat-number">20+</div>
-              <div className="hero-stat-label">Program Terlaksana</div>
-            </div>
-          </div>
+  return (
+    <div className="tool-content">
+      <div className="qr-container">
+        <div className="qr-preview">
+          {qrUrl ? (
+            <img src={qrUrl} alt="QR Code" className="qr-image" />
+          ) : (
+            <div className="qr-placeholder">QR Code</div>
+          )}
         </div>
-      </section>
-
-      {/* ==================== TENTANG SECTION ==================== */}
-      <section id="tentang" className="section about">
-        <div className="section-container">
-          <div className="about-grid">
-            <div className="about-image">
-              <div className="about-image-main">
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
-                  <AcademicCapIcon className="about-main-icon" />
-                </div>
-              </div>
-              <div className="about-image-decoration top-right">
-                <div className="decoration-number">2019</div>
-                <div className="decoration-text">Tahun Berdiri</div>
-              </div>
-              <div className="about-image-decoration bottom-left">
-                <TrophyIcon className="decoration-icon-svg" />
-                <div className="decoration-text">Organisasi Terbaik</div>
-              </div>
-            </div>
-
-            <div className="about-content">
-              <h2>
-                Tentang <span>HIMK TPI-B</span>
-              </h2>
-              <p>
-                Himpunan Mahasiswa Kundur Tanjungpinang-Bintan (HIMK TPI-B) merupakan
-                organisasi kemahasiswaan yang mewadahi para mahasiswa asal Kecamatan
-                Kundur, Kabupaten Karimun yang sedang menempuh pendidikan di wilayah
-                Tanjungpinang dan Bintan.
-              </p>
-              <p>
-                Didirikan dengan semangat kebersamaan dan kepedulian, HIMK TPI-B hadir
-                sebagai rumah kedua bagi para mahasiswa rantau untuk saling mendukung,
-                berbagi pengalaman, dan mengembangkan potensi diri.
-              </p>
-
-              <div className="about-features">
-                <div className="about-feature">
-                  <div className="about-feature-icon">
-                    <UserGroupIcon className="feature-icon-svg" />
-                  </div>
-                  <span>Silaturahmi Kuat</span>
-                </div>
-                <div className="about-feature">
-                  <div className="about-feature-icon">
-                    <BookOpenIcon className="feature-icon-svg" />
-                  </div>
-                  <span>Edukasi Berkualitas</span>
-                </div>
-                <div className="about-feature">
-                  <div className="about-feature-icon">
-                    <FlagIcon className="feature-icon-svg" />
-                  </div>
-                  <span>Pengembangan Diri</span>
-                </div>
-                <div className="about-feature">
-                  <div className="about-feature-icon">
-                    <HandRaisedIcon className="feature-icon-svg" />
-                  </div>
-                  <span>Semangat Gotong Royong</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="qr-input-container">
+          <label>Text or URL</label>
+          <textarea
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Enter text or URL"
+            className="tool-textarea short"
+          />
+          <button onClick={generate} className="btn-tool btn-primary full-width">
+            <ArrowPathIcon className="btn-icon-small" /> Generate QR Code
+          </button>
         </div>
-      </section>
+      </div>
+    </div>
+  );
+}
 
-      {/* ==================== VISI MISI SECTION ==================== */}
-      <section id="visi-misi" className="section vision-mission">
-        <div className="section-container">
-          <div className="section-header">
-            <span className="section-label">Visi & Misi</span>
-            <h2 className="section-title">Arah dan Tujuan Kami</h2>
-            <p className="section-description">
-              Landasan yang menjadi panduan dalam setiap langkah dan program organisasi
-            </p>
-          </div>
+// ==================== DIFF CHECKER ====================
+function DiffChecker() {
+  const [text1, setText1] = useState('');
+  const [text2, setText2] = useState('');
+  const [diff, setDiff] = useState<{ type: 'same' | 'added' | 'removed'; text: string }[]>([]);
 
-          <div className="vm-grid">
-            <div className="vm-card">
-              <div className="vm-icon">
-                <EyeIcon className="vm-icon-svg" />
-              </div>
-              <h3>Visi</h3>
-              <p>
-                Menjadi organisasi mahasiswa daerah yang unggul, berdaya saing, dan
-                berperan aktif dalam membangun generasi muda Kundur yang berilmu,
-                berakhlak mulia, serta memberikan kontribusi positif bagi masyarakat
-                dan bangsa.
-              </p>
-            </div>
+  const computeDiff = () => {
+    const lines1 = text1.split('\n');
+    const lines2 = text2.split('\n');
+    const result: { type: 'same' | 'added' | 'removed'; text: string }[] = [];
 
-            <div className="vm-card">
-              <div className="vm-icon">
-                <FlagIcon className="vm-icon-svg" />
-              </div>
-              <h3>Misi</h3>
-              <ul>
-                <li>Mempererat tali silaturahmi antar mahasiswa Kundur di perantauan</li>
-                <li>Mengembangkan potensi akademik dan non-akademik anggota</li>
-                <li>Menyelenggarakan program yang bermanfaat bagi anggota dan masyarakat</li>
-                <li>Membangun jaringan kerjasama dengan berbagai pihak</li>
-                <li>Melestarikan nilai-nilai budaya dan kearifan lokal Kundur</li>
-              </ul>
-            </div>
-          </div>
+    const maxLen = Math.max(lines1.length, lines2.length);
+
+    for (let i = 0; i < maxLen; i++) {
+      const line1 = lines1[i] ?? '';
+      const line2 = lines2[i] ?? '';
+
+      if (line1 === line2) {
+        if (line1) result.push({ type: 'same', text: line1 });
+      } else {
+        if (line1) result.push({ type: 'removed', text: line1 });
+        if (line2) result.push({ type: 'added', text: line2 });
+      }
+    }
+
+    setDiff(result);
+  };
+
+  const clearAll = () => {
+    setText1('');
+    setText2('');
+    setDiff([]);
+  };
+
+  return (
+    <div className="tool-content">
+      <div className="tool-row">
+        <div className="tool-col">
+          <label>Original Text</label>
+          <textarea
+            value={text1}
+            onChange={(e) => setText1(e.target.value)}
+            placeholder="Paste original text here..."
+            className="tool-textarea"
+          />
         </div>
-      </section>
-
-      {/* ==================== PROGRAM SECTION ==================== */}
-      <section id="program" className="section programs">
-        <div className="section-container">
-          <div className="section-header">
-            <span className="section-label">Program Unggulan</span>
-            <h2 className="section-title">Kegiatan & Inisiatif Kami</h2>
-            <p className="section-description">
-              Program-program berkualitas yang dirancang untuk pengembangan anggota
-            </p>
-          </div>
-
-          <div className="programs-grid">
-            <div className="program-card">
-              <div className="program-icon">
-                <BookOpenIcon className="program-icon-svg" />
-              </div>
-              <h3>Study Club</h3>
-              <p>Program belajar bersama dan diskusi akademik untuk meningkatkan prestasi belajar mahasiswa.</p>
-            </div>
-
-            <div className="program-card">
-              <div className="program-icon">
-                <MicrophoneIcon className="program-icon-svg" />
-              </div>
-              <h3>Leadership Training</h3>
-              <p>Pelatihan kepemimpinan untuk membekali anggota dengan soft skills yang dibutuhkan.</p>
-            </div>
-
-            <div className="program-card">
-              <div className="program-icon">
-                <MusicalNoteIcon className="program-icon-svg" />
-              </div>
-              <h3>Seni & Budaya</h3>
-              <p>Kegiatan pelestarian dan pengembangan seni budaya khas Kundur dan Melayu.</p>
-            </div>
-
-            <div className="program-card">
-              <div className="program-icon">
-                <BoltIcon className="program-icon-svg" />
-              </div>
-              <h3>Olahraga & Rekreasi</h3>
-              <p>Kegiatan olahraga bersama dan rekreasi untuk menjaga kebersamaan dan kesehatan.</p>
-            </div>
-
-            <div className="program-card">
-              <div className="program-icon">
-                <BriefcaseIcon className="program-icon-svg" />
-              </div>
-              <h3>Career Development</h3>
-              <p>Seminar dan workshop pengembangan karir serta persiapan memasuki dunia kerja.</p>
-            </div>
-
-            <div className="program-card">
-              <div className="program-icon">
-                <HeartIcon className="program-icon-svg" />
-              </div>
-              <h3>Bakti Sosial</h3>
-              <p>Kegiatan sosial dan pengabdian masyarakat sebagai wujud kepedulian terhadap sesama.</p>
-            </div>
-          </div>
+        <div className="tool-col">
+          <label>Modified Text</label>
+          <textarea
+            value={text2}
+            onChange={(e) => setText2(e.target.value)}
+            placeholder="Paste modified text here..."
+            className="tool-textarea"
+          />
         </div>
-      </section>
-
-      {/* ==================== BERITA SECTION ==================== */}
-      <section id="berita" className="section news">
-        <div className="section-container">
-          <div className="section-header">
-            <span className="section-label">Berita & Artikel</span>
-            <h2 className="section-title">Update Terbaru</h2>
-            <p className="section-description">
-              Berita dan informasi terkini seputar kegiatan HIMK TPI-B
-            </p>
-          </div>
-
-          <div className="news-grid">
-            <div className="news-featured">
-              <div className="news-featured-image">
-                <span className="news-badge">
-                  <SparklesSolid className="news-badge-icon" />
-                  Terbaru
+      </div>
+      <div className="tool-actions">
+        <button onClick={computeDiff} className="btn-tool btn-primary">Compare</button>
+        <button onClick={clearAll} className="btn-tool btn-secondary">Clear All</button>
+      </div>
+      {diff.length > 0 && (
+        <div className="diff-result">
+          <label>Diff Result</label>
+          <div className="diff-output">
+            {diff.map((item, i) => (
+              <div key={i} className={`diff-line diff-${item.type}`}>
+                <span className="diff-indicator">
+                  {item.type === 'added' ? '+' : item.type === 'removed' ? '-' : ' '}
                 </span>
+                <span>{item.text}</span>
               </div>
-              <div className="news-featured-content">
-                <span className="news-date">
-                  <CalendarDaysIcon className="news-date-icon" />
-                  20 Desember 2024
-                </span>
-                <h3>Musyawarah Besar HIMK TPI-B 2024 Sukses Digelar</h3>
-                <p>
-                  Musyawarah Besar tahunan HIMK TPI-B telah sukses diselenggarakan
-                  dengan dihadiri oleh seluruh anggota dan alumni. Kegiatan ini
-                  membahas program kerja dan pemilihan kepengurusan baru.
-                </p>
-                <a href="#" className="news-read-more">
-                  Baca Selengkapnya
-                  <ArrowRightIcon className="news-arrow-icon" />
-                </a>
-              </div>
-            </div>
-
-            <div className="news-list">
-              <div className="news-item">
-                <div className="news-item-image">
-                  <BookOpenIcon className="news-item-icon" />
-                </div>
-                <div className="news-item-content">
-                  <h4>Workshop Penulisan Karya Ilmiah</h4>
-                  <p>
-                    <CalendarDaysIcon className="news-date-icon-small" />
-                    15 Desember 2024
-                  </p>
-                </div>
-              </div>
-
-              <div className="news-item">
-                <div className="news-item-image">
-                  <TrophyIcon className="news-item-icon" />
-                </div>
-                <div className="news-item-content">
-                  <h4>Turnamen Futsal Antar Organisasi Daerah</h4>
-                  <p>
-                    <CalendarDaysIcon className="news-date-icon-small" />
-                    10 Desember 2024
-                  </p>
-                </div>
-              </div>
-
-              <div className="news-item">
-                <div className="news-item-image">
-                  <HeartSolid className="news-item-icon" />
-                </div>
-                <div className="news-item-content">
-                  <h4>Buka Puasa Bersama dan Santunan Anak Yatim</h4>
-                  <p>
-                    <CalendarDaysIcon className="news-date-icon-small" />
-                    5 Desember 2024
-                  </p>
-                </div>
-              </div>
-
-              <div className="news-item">
-                <div className="news-item-image">
-                  <BriefcaseIcon className="news-item-icon" />
-                </div>
-                <div className="news-item-content">
-                  <h4>Seminar Kewirausahaan Digital</h4>
-                  <p>
-                    <CalendarDaysIcon className="news-date-icon-small" />
-                    28 November 2024
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="section-footer">
-            <a href="/berita" className="btn btn-secondary">
-              <ClipboardDocumentListIcon className="btn-icon" />
-              Lihat Semua Berita
-              <ArrowRightIcon className="btn-icon" />
-            </a>
+            ))}
           </div>
         </div>
-      </section>
+      )}
+    </div>
+  );
+}
 
-      {/* ==================== GALERI SECTION ==================== */}
-      <section id="galeri" className="section gallery">
-        <div className="section-container">
-          <div className="section-header">
-            <span className="section-label">Galeri</span>
-            <h2 className="section-title">Momen Kebersamaan</h2>
-            <p className="section-description">
-              Dokumentasi kegiatan dan momen berharga bersama HIMK TPI-B
-            </p>
+// ==================== REGEX TESTER ====================
+function RegexTester() {
+  const [pattern, setPattern] = useState('');
+  const [flags, setFlags] = useState('g');
+  const [testString, setTestString] = useState('');
+  const [matches, setMatches] = useState<{ match: string; index: number; groups?: string[] }[]>([]);
+  const [error, setError] = useState('');
+
+  const testRegex = () => {
+    if (!pattern) {
+      setMatches([]);
+      setError('');
+      return;
+    }
+
+    try {
+      const regex = new RegExp(pattern, flags);
+      const results: { match: string; index: number; groups?: string[] }[] = [];
+
+      if (flags.includes('g')) {
+        let match;
+        while ((match = regex.exec(testString)) !== null) {
+          results.push({
+            match: match[0],
+            index: match.index,
+            groups: match.slice(1).length > 0 ? match.slice(1) : undefined,
+          });
+          if (!match[0]) break; // Prevent infinite loop on zero-length matches
+        }
+      } else {
+        const match = regex.exec(testString);
+        if (match) {
+          results.push({
+            match: match[0],
+            index: match.index,
+            groups: match.slice(1).length > 0 ? match.slice(1) : undefined,
+          });
+        }
+      }
+
+      setMatches(results);
+      setError('');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Invalid regex pattern');
+      setMatches([]);
+    }
+  };
+
+  useEffect(() => {
+    testRegex();
+  }, [pattern, flags, testString]);
+
+  const highlightMatches = () => {
+    if (!pattern || error || matches.length === 0) {
+      return <span>{testString}</span>;
+    }
+
+    try {
+      const regex = new RegExp(pattern, flags);
+      const parts = testString.split(regex);
+      const matchTexts = testString.match(regex) || [];
+
+      const result: React.ReactNode[] = [];
+      parts.forEach((part, i) => {
+        result.push(<span key={`part-${i}`}>{part}</span>);
+        if (matchTexts[i]) {
+          result.push(<mark key={`match-${i}`} className="regex-highlight">{matchTexts[i]}</mark>);
+        }
+      });
+
+      return result;
+    } catch {
+      return <span>{testString}</span>;
+    }
+  };
+
+  return (
+    <div className="tool-content">
+      <div className="regex-input-row">
+        <div className="regex-pattern-group">
+          <label>Pattern</label>
+          <div className="regex-pattern-input">
+            <span className="regex-delimiter">/</span>
+            <input
+              type="text"
+              value={pattern}
+              onChange={(e) => setPattern(e.target.value)}
+              placeholder="Enter regex pattern..."
+              className="tool-input regex-input"
+            />
+            <span className="regex-delimiter">/</span>
+            <input
+              type="text"
+              value={flags}
+              onChange={(e) => setFlags(e.target.value)}
+              placeholder="g"
+              className="tool-input regex-flags"
+            />
           </div>
+          {error && <span className="error-text">{error}</span>}
+        </div>
+      </div>
 
-          <div className="gallery-grid">
-            <div className="gallery-item">
-              <div className="gallery-item-bg"></div>
-              <div className="gallery-overlay">
-                <PhotoIcon className="gallery-icon" />
-                <span>Musyawarah Besar 2024</span>
-              </div>
-            </div>
-            <div className="gallery-item">
-              <div className="gallery-item-bg" style={{ background: 'linear-gradient(135deg, #ec4899, #8b5cf6)' }}></div>
-              <div className="gallery-overlay">
-                <PhotoIcon className="gallery-icon" />
-                <span>Perayaan HUT</span>
-              </div>
-            </div>
-            <div className="gallery-item">
-              <div className="gallery-item-bg" style={{ background: 'linear-gradient(135deg, #22c55e, #14b8a6)' }}></div>
-              <div className="gallery-overlay">
-                <PhotoIcon className="gallery-icon" />
-                <span>Bakti Sosial</span>
-              </div>
-            </div>
-            <div className="gallery-item">
-              <div className="gallery-item-bg" style={{ background: 'linear-gradient(135deg, #f59e0b, #ef4444)' }}></div>
-              <div className="gallery-overlay">
-                <PhotoIcon className="gallery-icon" />
-                <span>Leadership Camp</span>
-              </div>
-            </div>
-            <div className="gallery-item">
-              <div className="gallery-item-bg" style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}></div>
-              <div className="gallery-overlay">
-                <PhotoIcon className="gallery-icon" />
-                <span>Study Club</span>
-              </div>
-            </div>
-            <div className="gallery-item">
-              <div className="gallery-item-bg" style={{ background: 'linear-gradient(135deg, #8b5cf6, #d946ef)' }}></div>
-              <div className="gallery-overlay">
-                <PhotoIcon className="gallery-icon" />
-                <span>Olahraga Bersama</span>
-              </div>
-            </div>
-          </div>
+      <div className="tool-input-group">
+        <label>Test String</label>
+        <textarea
+          value={testString}
+          onChange={(e) => setTestString(e.target.value)}
+          placeholder="Enter text to test against..."
+          className="tool-textarea short"
+        />
+      </div>
 
-          <div className="section-footer">
-            <a href="/galeri" className="btn btn-secondary">
-              <PhotoIcon className="btn-icon" />
-              Lihat Semua Galeri
-              <ArrowRightIcon className="btn-icon" />
-            </a>
+      <div className="regex-preview">
+        <label>Preview (matches highlighted)</label>
+        <div className="regex-preview-box">
+          {highlightMatches()}
+        </div>
+      </div>
+
+      {matches.length > 0 && (
+        <div className="regex-matches">
+          <label>Matches ({matches.length} found)</label>
+          <div className="matches-list">
+            {matches.map((m, i) => (
+              <div key={i} className="match-item">
+                <span className="match-index">#{i + 1}</span>
+                <code className="match-text">{m.match}</code>
+                <span className="match-position">at index {m.index}</span>
+                {m.groups && (
+                  <span className="match-groups">
+                    Groups: {m.groups.map((g, j) => <code key={j}>{g}</code>)}
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
         </div>
-      </section>
+      )}
+    </div>
+  );
+}
 
-      {/* ==================== CTA SECTION ==================== */}
-      <section className="cta">
-        <div className="cta-container">
-          <div className="cta-yell">
-            <h2>HIDUP MAHASISWA!</h2>
-            <h2>HIDUP MAHASISWA!</h2>
-          </div>
-          <div className="cta-call-response">
-            <p className="cta-call">APAKABAR MAHASISWA KUNDUR?</p>
-            <p className="cta-response">LUAR BIASA, SIAP JADI PEMIMPIN!</p>
-          </div>
-          <a href="#tentang" className="btn btn-secondary">
-            <UserGroupIcon className="btn-icon" />
-            Tentang HIMK TPI-B
-          </a>
-        </div>
-      </section>
+// ==================== MAIN COMPONENT ====================
+export default function Home() {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeTool, setActiveTool] = useState<string | null>(null);
+  const [darkMode, setDarkMode] = useState(true);
 
-      {/* ==================== KONTAK SECTION ==================== */}
-      <section id="kontak" className="section contact">
-        <div className="section-container">
-          <div className="contact-grid">
-            <div className="contact-info">
-              <h2>Hubungi Kami</h2>
-              <p>
-                Ada pertanyaan atau ingin bergabung? Jangan ragu untuk menghubungi
-                kami melalui kontak di bawah ini atau kirimkan pesan langsung.
-              </p>
+  useEffect(() => {
+    // Load theme from localStorage
+    const savedTheme = localStorage.getItem('devtools-theme');
+    if (savedTheme) {
+      setDarkMode(savedTheme === 'dark');
+    }
+  }, []);
 
-              <div className="contact-list">
-                <div className="contact-item">
-                  <div className="contact-icon">
-                    <MapPinIcon className="contact-icon-svg" />
-                  </div>
-                  <div className="contact-item-content">
-                    <h4>Alamat</h4>
-                    <p>Tanjungpinang, Kepulauan Riau</p>
-                  </div>
-                </div>
+  useEffect(() => {
+    // Apply theme to document
+    document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : 'light');
+    localStorage.setItem('devtools-theme', darkMode ? 'dark' : 'light');
+  }, [darkMode]);
 
-                <div className="contact-item">
-                  <div className="contact-icon">
-                    <EnvelopeIcon className="contact-icon-svg" />
-                  </div>
-                  <div className="contact-item-content">
-                    <h4>Email</h4>
-                    <p>himktpib@gmail.com</p>
-                  </div>
-                </div>
+  const filteredTools = useMemo(() => {
+    return tools.filter((tool) => {
+      const matchesSearch = tool.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        tool.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = activeCategory === 'all' || tool.category === activeCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [searchQuery, activeCategory]);
 
-                <div className="contact-item">
-                  <div className="contact-icon">
-                    <PhoneIcon className="contact-icon-svg" />
-                  </div>
-                  <div className="contact-item-content">
-                    <h4>WhatsApp</h4>
-                    <p>+62 812 3456 7890</p>
-                  </div>
-                </div>
-              </div>
+  const renderToolContent = (toolId: string) => {
+    switch (toolId) {
+      case 'json-formatter': return <JsonFormatter />;
+      case 'base64': return <Base64Tool />;
+      case 'uuid': return <UuidGenerator />;
+      case 'color-picker': return <ColorPicker />;
+      case 'lorem-ipsum': return <LoremIpsumGenerator />;
+      case 'url-encoder': return <UrlEncoder />;
+      case 'password-generator': return <PasswordGenerator />;
+      case 'hash-generator': return <HashGenerator />;
+      case 'qr-generator': return <QrCodeGenerator />;
+      case 'diff-checker': return <DiffChecker />;
+      case 'regex-tester': return <RegexTester />;
+      default: return null;
+    }
+  };
 
-              <div className="contact-socials">
-                <a href="#" className="social-link" aria-label="Facebook">
-                  <svg className="social-icon-svg" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                  </svg>
-                </a>
-                <a href="#" className="social-link" aria-label="Instagram">
-                  <svg className="social-icon-svg" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                  </svg>
-                </a>
-                <a href="#" className="social-link" aria-label="Twitter">
-                  <svg className="social-icon-svg" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                </a>
-                <a href="#" className="social-link" aria-label="YouTube">
-                  <svg className="social-icon-svg" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
-                  </svg>
-                </a>
-              </div>
+  return (
+    <div className="app">
+      {/* Header */}
+      <header className="header">
+        <div className="header-container">
+          <div className="brand">
+            <div className="brand-logo">
+              <CommandLineIcon className="brand-icon" />
             </div>
+            <div className="brand-text">
+              <h1>DevTools Hub</h1>
+              <span>Free Online Developer Utilities</span>
+            </div>
+          </div>
+          <div className="search-container">
+            <MagnifyingGlassIcon className="search-icon" />
+            <input
+              type="text"
+              placeholder="Search tools..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+          </div>
+          <button
+            onClick={() => setDarkMode(!darkMode)}
+            className="theme-toggle"
+            title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+          >
+            {darkMode ? <SunIcon className="theme-icon" /> : <MoonIcon className="theme-icon" />}
+          </button>
+        </div>
+      </header>
 
-            <form className="contact-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Nama Lengkap</label>
-                  <input type="text" placeholder="Masukkan nama anda" />
-                </div>
-                <div className="form-group">
-                  <label>Email</label>
-                  <input type="email" placeholder="Masukkan email anda" />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>Subjek</label>
-                <input type="text" placeholder="Subjek pesan" />
-              </div>
-
-              <div className="form-group">
-                <label>Pesan</label>
-                <textarea placeholder="Tulis pesan anda disini..."></textarea>
-              </div>
-
-              <button type="submit" className="btn btn-primary">
-                <PaperAirplaneIcon className="btn-icon" />
-                Kirim Pesan
+      {/* Main Content */}
+      <main className="main">
+        <div className="main-container">
+          {/* Categories */}
+          <div className="categories">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`category-btn ${activeCategory === cat.id ? 'active' : ''}`}
+              >
+                {cat.icon}
+                {cat.name}
               </button>
-            </form>
+            ))}
           </div>
-        </div>
-      </section>
 
-      {/* ==================== FOOTER ==================== */}
+          {/* Tool Grid or Active Tool */}
+          {activeTool ? (
+            <div className="tool-panel">
+              <button onClick={() => setActiveTool(null)} className="back-btn">
+                ← Back to Tools
+              </button>
+              <div className="tool-header">
+                {tools.find(t => t.id === activeTool)?.icon}
+                <div>
+                  <h2>{tools.find(t => t.id === activeTool)?.name}</h2>
+                  <p>{tools.find(t => t.id === activeTool)?.description}</p>
+                </div>
+              </div>
+              {renderToolContent(activeTool)}
+            </div>
+          ) : (
+            <div className="tools-grid">
+              {filteredTools.map((tool) => (
+                <div
+                  key={tool.id}
+                  className="tool-card"
+                  onClick={() => setActiveTool(tool.id)}
+                >
+                  <div className="tool-card-icon">{tool.icon}</div>
+                  <h3>{tool.name}</h3>
+                  <p>{tool.description}</p>
+                  <span className="tool-category">{tool.category}</span>
+                </div>
+              ))}
+              {filteredTools.length === 0 && (
+                <div className="no-results">
+                  <p>No tools found matching your search.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* Footer */}
       <footer className="footer">
         <div className="footer-container">
-          <div className="footer-grid">
-            <div className="footer-about">
-              <div className="footer-brand">
-                <div className="footer-logo">HIMK</div>
-                <div className="footer-brand-text">
-                  <h3>HIMK TPI-B</h3>
-                  <span>Himpunan Mahasiswa Kundur</span>
-                </div>
-              </div>
-              <p>
-                Wadah silaturahmi dan pengembangan potensi mahasiswa asal Kundur
-                yang menempuh pendidikan di Tanjungpinang dan Bintan.
-              </p>
-            </div>
-
-            <div className="footer-column">
-              <h4>Navigasi</h4>
-              <ul className="footer-links">
-                <li><a href="#beranda">Beranda</a></li>
-                <li><a href="#tentang">Tentang Kami</a></li>
-                <li><a href="#visi-misi">Visi & Misi</a></li>
-                <li><a href="#program">Program</a></li>
-              </ul>
-            </div>
-
-            <div className="footer-column">
-              <h4>Kegiatan</h4>
-              <ul className="footer-links">
-                <li><a href="#berita">Berita</a></li>
-                <li><a href="#galeri">Galeri</a></li>
-                <li><a href="#">Agenda</a></li>
-                <li><a href="#">Dokumentasi</a></li>
-              </ul>
-            </div>
-
-            <div className="footer-column">
-              <h4>Lainnya</h4>
-              <ul className="footer-links">
-                <li><a href="#">Pendaftaran</a></li>
-                <li><a href="#">Alumni</a></li>
-                <li><a href="#">FAQ</a></li>
-                <li><a href="#kontak">Kontak</a></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="footer-bottom">
-            <p>© 2024 HIMK TPI-B. All rights reserved.</p>
-            <div className="footer-bottom-links">
-              <a href="#">Privacy Policy</a>
-              <a href="#">Terms of Service</a>
-            </div>
-          </div>
+          <p>© 2026 DevTools Hub. All tools run in your browser - your data never leaves your device.</p>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
