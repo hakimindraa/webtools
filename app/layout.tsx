@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "HIMK TPI-B | Himpunan Mahasiswa Kundur Tanjungpinang-Bintan",
-  description: "Himpunan Mahasiswa Kundur Tanjungpinang-Bintan (HIMK TPI-B) adalah wadah silaturahmi dan pengembangan potensi mahasiswa asal Kundur yang menempuh pendidikan di Tanjungpinang dan Bintan.",
-  keywords: "HIMK, TPI-B, Kundur, Tanjungpinang, Bintan, Mahasiswa, Organisasi Daerah, Kepulauan Riau",
+  title: "AlatDev - Developer Tools Indonesia",
+  description: "Koleksi tools gratis untuk developer: JSON Formatter, Base64, UUID Generator, Color Picker, Password Generator, dan banyak lagi. Semua berjalan di browser.",
+  keywords: "developer tools, web tools, JSON formatter, Base64, UUID generator, color picker, password generator, Indonesia",
 };
 
 export default function RootLayout({
